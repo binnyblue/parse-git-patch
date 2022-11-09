@@ -319,3 +319,29 @@ test('parses a add and delete patch', () => {
 test('parses a complex patch', () => {
   parse(data['complex.patch'])
 })
+
+test('parse multiple patches in the same file into an array of patches', () => {
+  const result = parse(data['multiple-patches-combined.patch'])
+  expect(result).toBeInstanceOf(Array)
+  // this patch contains 42 patches
+  // iterate through the array and check that each item is a patch tha
+  if (Array.isArray(result)) {
+    expect(result.length).toEqual(42)
+    result.forEach((patch, index) => {
+      if (!patch) {
+        console.error(`patch ${index} is undefined`)
+
+        return
+      }
+      expect(patch).toHaveProperty('hash')
+      expect(patch).toHaveProperty('message')
+      expect(patch).toHaveProperty('authorEmail')
+      expect(patch).toHaveProperty('authorName')
+      expect(patch).toHaveProperty('date')
+      expect(patch).toHaveProperty('files')
+      index++
+      const indexString = index < 10 ? `0${index}` : index.toString()
+      expect(patch.message).toContain(`[PATCH ${indexString}/42]`)
+    })
+  }
+})
