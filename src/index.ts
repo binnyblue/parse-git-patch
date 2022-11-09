@@ -29,10 +29,7 @@ export type ParsedPatchType = {
   files: ParsedPatchFileDataType[]
 }
 
-function parseGitPatch(patch: string) {
-  if (typeof patch !== 'string') {
-    throw new Error('Expected first argument (patch) to be a string')
-  }
+function createPatchStructureForSinglePatch(patch: string): ParsedPatchType|null {
 
   const lines = patch.split('\n')
 
@@ -156,6 +153,20 @@ function parseGitPatch(patch: string) {
   return parsedPatch
 }
 
+function parseGitPatch(patch: string): null | ParsedPatchType | Array<ParsedPatchType|null> {
+  if (typeof patch !== 'string') {
+    throw new Error('Expected first argument (patch) to be a string')
+  }
+
+  const patches = splitIntoPatches(patch)
+  if (patches.length === 0) return null
+  if (patches.length === 1) {
+    return createPatchStructureForSinglePatch(patch)
+  }
+
+  return patches.map(createPatchStructureForSinglePatch)
+}
+
 function splitIntoParts(lines: string[], separator: string) {
   const parts = []
   let currentPart: string[] | undefined
@@ -178,6 +189,21 @@ function splitIntoParts(lines: string[], separator: string) {
   }
 
   return parts
+}
+
+function splitIntoPatches(combinedPatch:string): string[] {
+  // search for the opening line of a patch if the format: "From <hash> <DayOfWeek> <Month> <Day> <Time> <Year>"
+  const regExp = /^From (\S+) (Mon|Tues|Wed|Thurs|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \b(0?[1-9]|[12][0-9]|3[01])\b \b(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)\b \b\d{4}\b$/gm
+  const matches = [...combinedPatch.matchAll(regExp)]
+  const patches = []
+  let lastMatchIndex = 0
+  for (const match of matches) {
+    lastMatchIndex++
+    const endIndex = matches[lastMatchIndex] ? matches[lastMatchIndex].index : combinedPatch.length
+    patches.push(combinedPatch.substring(match.index || 0, endIndex))
+  }
+
+  return patches
 }
 
 export default parseGitPatch
